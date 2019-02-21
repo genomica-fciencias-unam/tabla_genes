@@ -22,7 +22,7 @@ handle.close()
 #agrupar todos los transcritos mapeados en un solo archivo
 os.system('cat '+ ' '.join(hitfiles) +' > '+ args[2] +'.tmp1')
 
-print('Buscando clusters con secuencias mapeadas (toma timepo)')
+print('Buscando clusters con secuencias mapeadas (toma tiempo)')
 #obtener solo los clusters con marcos de lectura mapeados !tarda
 os.system("for id in `awk -F "+'" "'+" '{print $2}' "+ args[2] +".tmp1`; do grep -P $id'\\t' "+ args[1] +" >> "+ args[2] +".tmp2; done")
 os.system("sort "+ args[2] +".tmp2 | uniq > "+ args[2] +".tmp3")
