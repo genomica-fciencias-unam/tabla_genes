@@ -1,3 +1,2 @@
-# Scripts para generar las tablas de genes
-
-Corren con python3. Si se llaman sin argumentos, se imprime una breve ayuda.
+# Scripts used to get abundance tables
+Written in python3. When called without arguments an example is displayed.
