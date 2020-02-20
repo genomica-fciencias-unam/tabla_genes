@@ -22,7 +22,7 @@ Map the reads to the CDSs.
 
 `bowtie2 -f -x acacia -U acacia-rn.fasta -S acacia.sam --quiet -p 20 --very-sensitive`
 
-Recover only unambiguous alignments and get the mapped CDS with their respective number of hits.
+Recover only unambiguous alignments and get the mapped CDSs with their respective number of hits.
 
 `grep -v '^@' acacia.sam | awk '{if($5 == "42") print $3}' | sort | uniq -c > acacia.hits`
 
