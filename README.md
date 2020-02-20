@@ -84,7 +84,7 @@ Join all samples in a single table with the hitter_table.py script. The resultin
 
 `python3 hitter_table.py lista nac`
 
-### Add clusters of unannotates sequences
+### Add clusters of unannotated sequences
 
 Get a list of annotated sequences.
 
