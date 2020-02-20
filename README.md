@@ -1,46 +1,46 @@
-Instrucciones para generar una tabla de genes anotados y no anotados, con conteos basados en mapeo de lecturas.
-Los scripts mencionados se encuentran disponibles en este repositorio.
+Get a table of annotated and unannotated genes with counts based in read mapping. 
+The scripts are included in this repository.
 
-## Obtención de tablas de abundancia de genes
+## Get gene abundance tables
 
-Archivos iniciales:
+Starting files:
 
-*acacia.faa* contiene secuencias de aminoácidos renombradas. 
-(Los nombres de las secuencias deben tener el nombre de la muestra como prefijo y el número de secuencia como sufijo)
+*acacia.faa* protein sequences. 
+(The names of the sequences must have the sample name as prefix and the sequence number as suffix, separated by an underscore.)
 
-*acacia.fna* contiene secuencias de nucleótidos de los marcos de lectura renombradas.
-(Los nombres de las secuencias deben tener el nombre de la muestra como prefijo y el número de secuencia como sufijo y las secuencias deben corresponder con las del archivo de aminoácidos)
+*acacia.fna* CDS sequences.
+(The names of the sequences must have the sample name as prefix and the sequence number as suffix, separated by an underscore. The sequence names must correspond with the protein sequences file.)
 
-*acacia-rn.fasta* contiene secuencias de lecturas de calidad tanto pareadas como sin parear.
+*acacia-rn.fasta* reads.
 
-### Abundancias
-Generar librería de los marcos de lectura para mapear con bowtie2.
+### Abundance
+Create the CDS sequence database with bowtie2.
 
 `bowtie2-build acacia.fna acacia`
 
-Alinear lecturas a marcos de lectura para asignar abundancias.
+Map the reads to the CDS .
 
 `bowtie2 -f -x acacia -U acacia-rn.fasta -S acacia.sam --quiet -p 20 --very-sensitive`
 
-Obtener únicamente alineamientos de calidad y recuperar las secuencias de referencia mapeadas con su frecuencia.
+Recover only unambiguous alignments and get the mapped CDS with their respective number of hits.
 
 `grep -v '^@' acacia.sam | awk '{if($5 == "42") print $3}' | sort | uniq -c > acacia.hits`
 
-### Anotar
+### Annotation
 
-Partir el archivo de secuencias para paralelizar la anotación
+Split the protein multi fasta to speed up the annotation process.
 
 `partefasta 10000 acacia90.faa`
 
-Correr la anotación contra la base de datos m5nr en paralelo por cada archivo de 10,000 secuencias
+Search the protein sequences against the M5NR database.
 
 `diamond blastp -d m5nr -q acacia90.faa.1.fas -f 6 -e 1e-10 -k 10 -p 1 --quiet -o acacia90.faa.1.fas.bout`
 
-Unir todas las salidas del archivo *acacia.faa*
+Join all search tables in a sigle file *acacia.faa*
 
 `cat acacia90.faa.*.bout > acacia-m5nr.bout`
 
-Oneliner para ordenar la salida de blast por valor de bitscore, remover duplicados con el mismo valor de bitscore y guardar en el archivo *acacia_best_uniq*
+Oneliner to sort the hits by bitscore and remove bitscore duplicates.
 
 `
 cat acacia-m5nr.bout | perl -pe ' $name_col=0; $score_col=11; while(<>) { s/\r?\n//; @F=split /\t/, $_; ($n, $s) = @F[$name_col, $score_col]; if (! exists($max{$n})) { push @names, $n }; if (! exists($max
@@ -48,15 +48,15 @@ cat acacia-m5nr.bout | perl -pe ' $name_col=0; $score_col=11; while(<>) { s/\r?\
 plit /\t/, $_; if (! ($save{$F[$column]}++)) { print "$_\n"; $unique++ } } ' best > acacia_best_uniq; rm best
 `
 
-Simplificar la salida
+Get only relevant columns.
 
 `awk '{print $1"\t"$3"\t"$11"\t"$12"\t"$2}' acacia_best_uniq > acacia_best.simple.tsv`
 
-### Construir tablas
+### Build tables
 
-#### Importante: Para utilizar los scripts que generan las tablas de abundancias (hitter.py, hitter_table.py y hitter_na.py) es imprescindible que los nombres de las secuencias tengan como prefijo el nombre de la muestra (y como sufijo el número de la secuencia) y que los archivos de secuencias mapeadas tengan el nombre de la muestra. Los nombres de las muestras deben ser consistentes  y no deben contener guiones bajos.
+#### Important: In order to use the following scripts (hitter.py, hitter_table.py y hitter_na.py) the sequences must have the sample name as prefix and the mapped sequence abundance must have the sample name. The sample names must be consistent and should not have underscores.
 
-Por ejemplo, el archivo *acacia.hits* debe verse así:
+E.g. the mapped sequence file *acacia.hits* should look like this:
 
 ```
       1 acacia_10
@@ -71,53 +71,57 @@ Por ejemplo, el archivo *acacia.hits* debe verse así:
       4 acacia_100006 
 ```
 
-
-Generar una tabla que contenga cada identificador del m5nr y su abundancia según las lecturas mapeadas a los marcos de lectura. Se usa el script hitter.py y se obtiene el archivo *acacia.hout*
+Get a table containing a M5NR id in each row and its mapped read abundance in the second column.
+The resulting file is named *acacia.hout*.
 
 `python3 hitter.py acacia_best.simple.tsv acacia.hits acacia`
 
-Se usó el mismo método para las muestras cca y ccac. Crear una lista con las muestras a juntar en una tabla
+Create a list of all table files.
 
 `ls *.hout > lista`
 
-Unir las muestras en una sola tabla con el script hitter_table.py se obtiene el archivo *nac.tsv*
+Join all samples in a single table with the hitter_table.py script. The resulting file is named *nac.tsv*.
 
 `python3 hitter_table.py lista nac`
 
-### Agregar secuencias no anotadas agrupadas por identidad
+### Add clusters of unannotates sequences
 
-Obtener lista de secuencias anotadas
+Get a list of annotated sequences.
 
 `awk '{print $1}' acacia_best.simple.tsv > acacia_anotados.txt`
 
-Obtener lista de todas las secuencias
+Get a list of all sequences.
 
 `grep '>' acacia.faa | sed 's/>//g' > acacia_todos.txt`
 
-Recuperar los nombres de las secuencias no anotadas
+Extract the names of the unannotated sequences.
 
 `cat acacia_anotados.txt acacia_todos.txt | sort | uniq -c | grep '1 ' | awk '{print $2}' > acacia_na.txt`
 
-Extraer las secuencias no anotadas
+Recover the unannotated sequences.
 
 `seqtk subseq acacia.faa acacia_na.txt > acacia_na.faa`
 
-Unir las secuencias no anotadas de todas las muestras
+Join the multi fasta files of all unannotated sequences from all samples.
 
 `cat *_na.faa > todos_na.faa`
 
-Correr cd-hit para agrupar secuencias por identidad y cobertura
+Cluster these sequences using CD-HIT.
 
 `cd-hit -i todos_na.faa -o todos70 -c 0.70 -n 4 -aL 0.7 -d 0 -M 3000 -T 2 > todos70.cdhit.out`
 
-Convertir la salida a lista de clusters
+Transform the cluster file to a list.
 
 `perl -pne 's/\t//g;s/^.*,//g;s/\.\.\..*$//g;s/\n/\t/g;s/\>Cluster\ /\n/g;s/\>//g; eof && do{chomp; print "$_ \n"; exit}' todos70.clstr > todos70.otu`
 
-Obtener una lista de los archivos de mapeo de lecturas en marcos de lectura
+Get a list of the mapped read abundance files.
 
 `ls *.hits > nac_list.txt`
 
-Obtener la tabla de presencia de clusters con la frecuencia convertida en mapeo de lecturas con el script hitter_na.py se obtiene el archivo *nac_na.tsv*
+Build a table with a protein cluster in each row and its mapped read abundance along all samples as columns. The resulting fila is named *nac_na.tsv*
 
 `python3 hitter_na.py nac_list.txt todos70.otu nac`
+
+Get the table with both M5NR annotated proteins and unannotated protein clusters and their mapped read abundance in each sample.
+
+`cat nac.tsv nac_na.tsv > nac_complete.tsv`
