@@ -4,8 +4,8 @@ import sys
 if len(sys.argv[1:]) == 0:
     print(
 """
-Genera una tabla de genes a partir de clusters y mapeo de lecturas
-usage: python3 hitter_na.py hitfile_list.txt clusters.otu proyecto
+Build an abundance table from a list of clusters and read abundance files.
+usage: python3 hitter_na.py hitfile_list.txt clusters.otu project
 Miguel Romero github.com/romeromig
 """
 )
@@ -17,7 +17,7 @@ handle = open(args[0],'r')
 hitfiles = handle.read().split('\n')[:-1]
 handle.close()
 
-#agrupar todos los cdss mapeados en una lista
+#group all mapped CDSs files in a single list
 hits = []
 for filename in hitfiles:
     handle = open(filename,'r')
@@ -26,60 +26,59 @@ for filename in hitfiles:
     for line in rawfile:
         hits.append(line)
 
-# carga la tabla de clusters        
+# load the cluster tables        
 handle = open(args[1],'r')
 clusterfileraw = handle.read().split('\n')[:-1]
 handle.close()
 
-# carga los nombres de las secuencias mapeadas
+# load the names of all mapped sequences
 mapdseqs = []
 for line in hits:
     mapdseqs.append(line.split(' ')[-1])
 
-# obtener solo los clusters con marcos de lectura mapeados !tarda  MODIFICADO
-print('Buscando clusters con secuencias mapeadas (toma tiempo)')
+# recover clusters with mapped sequences
+print('Looking for clusters with mapped reads.')
 
-clstrs = []                             # lista de clusters mapeados
-for line in clusterfileraw:             # por cada cluster
-    linesep = line.split('\t')[1:-1]    # recupera los nombres de las secuencias
-    for seq in linesep:                 # por cada secuencia
-        seq = seq[1:]                   # elimina el espacio vacio 
-        if seq in mapdseqs:             # si esta en la lista de cdss mapeados
-            if line not in clstrs:      # y si el cluster no esta en la lista de clusters mapeados
-                clstrs.append(line)     # agregalo a la lista
-                break                   # cambia de cluster
+clstrs = []                             
+for line in clusterfileraw:             # for each cluster
+    linesep = line.split('\t')[1:-1]    # recover the sequence names
+    for seq in linesep:                 # for each sequence
+        seq = seq[1:]                    
+        if seq in mapdseqs:             # if it is mapped
+            if line not in clstrs:      
+                clstrs.append(line)     # add it to the sequence list
+                break                   # go to the next cluster
 
-# cada cdss apunta a su abundancia de lecturas mapeadas
+# each CDS points to its abundance
 hit_dict = {}
 for line in hits:
     linesep = line.split(' ')[-2:]
     hit_dict[linesep[1]] = int(linesep[0])
 
-# a partir de aqui es necesario que los nombres de las muestras y secuencias coincidan
-# carga los nombres de las muestras i.e. prefijos de los cdss
+# load the sample names
 samids = []
 for filename in hitfiles:
     samids.append(filename.split('.hits')[0])
 
-print('Creando tabla')
+print('Building table.')
 
-clstr_dict = {}                                                            # cada cluster apunta a su abundancia por muestra
-for line in clstrs:                                                        # por cluster
+clstr_dict = {}                                                            # each cluster points to its abundance in each sample
+for line in clstrs:                                                        # for each cluster
     linesep = line.split('\t')[:-1]
-    clstr_dict['C'+ linesep[0]] = {}                                       # crea un diccionario
-    for sample in samids:                                                  # por muestra
-        clstr_dict['C'+ linesep[0]][sample] = 0                            # crea un subdiccionario con abundancia cero
-    for seq in linesep[1:]:                                                # por cada secuencia en el cluster
-        seq = seq[1:]                                                      # elimina el espacio vacio
-        samseq = seq.split('_')[0]                                         # obten el nombre de la muestra
-        for sample in samids:                                              # y por muestra
-            if samseq == sample:                                           # cuando encuentres a cual pertenece
-                try:                                                       # si tiene reads mapeados, suma la abundancia
+    clstr_dict['C'+ linesep[0]] = {}                                       # make a dictionary
+    for sample in samids:                                                  # for each sample
+        clstr_dict['C'+ linesep[0]][sample] = 0                            # begin counting
+    for seq in linesep[1:]:                                                # for each sample in the cluster
+        seq = seq[1:]                                                      
+        samseq = seq.split('_')[0]                                         # get the sample name
+        for sample in samids:                                              # then for each sample
+            if samseq == sample:                                           # 
+                try:                                                       # add its abundance
                     clstr_dict['C'+ linesep[0]][sample] += hit_dict[seq]
-                except:                                                    # de otra forma, pasa
+                except:                                                    
                     pass
 
-# escribe la tabla
+# write the table
 outfile = open( args[2] +'_na.tsv','w')
 outfile.write('cluster\t'+ '\t'.join(samids) +'\n')
 
@@ -90,4 +89,4 @@ for clstr in clstr_dict.keys():
         columns.append(str(clstr_dict[clstr][sample]))
     outfile.write('\t'.join(columns) +'\n')
 outfile.close()
-print('Hecho. Tabla final guardada en '+ args[2] +'_na.tsv')
+print('Done. Final table saved in '+ args[2] +'_na.tsv')
