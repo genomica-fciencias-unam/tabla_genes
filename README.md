@@ -8,17 +8,17 @@ Starting files:
 *acacia.faa* protein sequences. 
 (The names of the sequences must have the sample name as prefix and the sequence number as suffix, separated by an underscore.)
 
-*acacia.fna* CDS sequences.
+*acacia.fna* nucleotide coding sequences.
 (The names of the sequences must have the sample name as prefix and the sequence number as suffix, separated by an underscore. The sequence names must correspond with the protein sequences file.)
 
 *acacia-rn.fasta* reads.
 
 ### Abundance
-Create the CDS sequence database with bowtie2.
+Create the CDSs sequence database with bowtie2.
 
 `bowtie2-build acacia.fna acacia`
 
-Map the reads to the CDS .
+Map the reads to the CDSs.
 
 `bowtie2 -f -x acacia -U acacia-rn.fasta -S acacia.sam --quiet -p 20 --very-sensitive`
 
