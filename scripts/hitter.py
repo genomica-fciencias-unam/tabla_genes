@@ -40,8 +40,11 @@ for line in hits:
 print('Buscando secuencias anotadas y mapeadas')
 chidas = []
 for seqid in list(annot_dict.keys()):
-    if seqid in list(hit_dict.keys()):
+    try:
+        hit_dict[seqid]
         chidas.append(seqid)
+    except:
+        pass
 
 print('Creando tabla')
 
