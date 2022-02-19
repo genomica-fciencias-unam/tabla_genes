@@ -24,7 +24,7 @@ Alinear lecturas a marcos de lectura para asignar abundancias.
 
 Obtener únicamente alineamientos de calidad y recuperar las secuencias de referencia mapeadas con su frecuencia.
 
-`grep -v '^@' acacia.sam | awk '{if($5 == "42") print $3}' | sort | uniq -c > acacia.hits`
+`grep -v '^@' acacia.sam | awk '{if($5 == 3 || $5 == 8 || $5 == 23 || $5 == 24 || $5 == 40 || $5 == 42) print $3}' | sort | uniq -c > acacia.hits`
 
 ### Anotar
 
