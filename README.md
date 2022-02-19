@@ -24,7 +24,7 @@ Map the reads to the CDSs.
 
 Recover only unambiguous alignments and get the mapped CDSs with their respective number of hits.
 
-`grep -v '^@' acacia.sam | awk '{if($5 == "42") print $3}' | sort | uniq -c > acacia.hits`
+`grep -v '^@' acacia.sam | awk '{if($5 == 3 || $5 == 8 || $5 == 23 || $5 == 24 || $5 == 40 || $5 == 42) print $3}' | sort | uniq -c > acacia.hits`
 
 ### Annotation
 
